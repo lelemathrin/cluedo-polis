@@ -2,3 +2,4 @@ discord
 asyncio
 python-dotenv
 openai
+firebase-admin==6.2.0

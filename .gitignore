@@ -8,3 +8,4 @@ contexts/*
 __pycache__
 *.drawio
 experiments*
+/creds/cluedo-polis.json
