@@ -9,3 +9,5 @@ __pycache__
 *.drawio
 experiments*
 /creds/cluedo-polis.json
+/cluedo-polis.json
+/venv
