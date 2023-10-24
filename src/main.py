@@ -1,13 +1,16 @@
 import discord
-
-token = 'MTE2NjAwNjY4NTcxNDg4MjYxMQ.G9CAk3.B18Qi0pGPGWyu55_g8_O84qQ2VPJnWWvOBOFVg'
+from dotenv import load_dotenv
+import os
 
 intents = discord.Intents.default()
 intents.message_content = True
 
+load_dotenv()
+
+token = os.getenv("DISCORD_TOKEN")
+
 client = discord.Client(intents=intents)
 
-# Définissez la classe Personnage ici
 class Personnage:
     def __init__(self, nom, metier):
         self.nom = nom
@@ -26,7 +29,7 @@ async def on_message(message):
         return
 
     if message.content.startswith('/parler'):
-        await message.channel.send(f'Dans le canal : {message.channel.name}, avec qui voulez-vous parler : Alice ou Bob ?')
+        await message.channel.send(f'Dans le serveur : {message.guild.name}, avec qui voulez-vous parler : Alice ou Bob ?')
 
         def check(m):
             return m.author == message.author and m.channel == message.channel
@@ -44,52 +47,37 @@ async def on_message(message):
         await message.channel.send('Hello!')
 
     if message.content.startswith('/start'):
-        # Créer les canaux "premier," "second," et "troisieme" dans le salon "game"
+        user = message.author
         guild = message.guild
-        category_name = "game"  # Nom du salon de catégorie
+        category_name = f"game_category_{user.name}"
 
-        # Vérifiez si la catégorie "game" existe, sinon, créez-la
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(read_messages=False),  # Les autres ne peuvent pas voir la catégorie
+            user: discord.PermissionOverwrite(read_messages=True)  # L'utilisateur peut voir la catégorie
+        }
+
         category = discord.utils.get(guild.categories, name=category_name)
         if not category:
-            category = await guild.create_category(category_name)
+            category = await guild.create_category(category_name, overwrites=overwrites)
 
         channel_names = ["premier", "second", "troisieme"]
 
         for name in channel_names:
             await guild.create_text_channel(name, category=category)
 
-        await message.channel.send('Canaux créés : premier, second, troisieme dans le salon "game"')
+        await message.channel.send(f'Canaux créés dans la catégorie "{category_name}"')
 
     if message.content.startswith('/end'):
-        # Supprimer les canaux "premier," "second," et "troisieme" dans la catégorie "game"
+        user = message.author
         guild = message.guild
-        category_name = "game"  # Nom du salon de catégorie
+        category_name = f"game_category_{user.name}"
 
         category = discord.utils.get(guild.categories, name=category_name)
         if category:
-            channel_names = ["premier", "second", "troisieme"]
-
-            for name in channel_names:
-                channel = discord.utils.get(category.text_channels, name=name)
-                if channel:
-                    await channel.delete()
-
-            # Supprimer la catégorie "game"
+            for channel in category.channels:
+                await channel.delete()
             await category.delete()
 
-        await message.channel.send('Canaux supprimés : premier, second, troisieme et la catégorie "game"')
-
-    if message.content.startswith('/'):
-        # Afficher les commandes disponibles
-        available_commands = [
-            "",
-            "\t/parler : Pour discuter avec Alice ou Bob.",
-            "\t/hello : Pour dire bonjour.",
-            "\t/start : Pour créer les canaux de jeu.",
-            "\t/end : Pour supprimer les canaux de jeu et la catégorie."
-        ]
-
-        response = "\n".join(available_commands)
-        await message.channel.send(f'Commandes disponibles :\n{response}')
+        await message.channel.send(f'Canaux et catégorie supprimés pour l\'utilisateur {user.name}')
 
 client.run(token)
