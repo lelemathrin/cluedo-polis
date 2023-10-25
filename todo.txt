@@ -1,0 +1,8 @@
+- adapter les personnages a l'histoire (google doc)
+- empecher chatgpt de parler d'autre chose que du jeu
+- seulement 3 questions par personnage
+- ajouter les images et noms des personnages 
+- 1 seule question/jour au commissaire
+- créer historique de toutes les questions
+- mécanique pour trouver le murder et gagner
+- menu de fin quand win

@@ -29,7 +29,7 @@ class Personnage:
     def get_name(self):
         return f"Je suis {self.nom}."
 
-channels_to_personnages = {
+channels_to_personnages = { 
     "premier": Personnage("Alice", "archéologue", True, False),
     "second": Personnage("Bob", "informaticien", True, False),
     "troisieme": Personnage("Carole", "chimiste", True, False),
