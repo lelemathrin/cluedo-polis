@@ -2,6 +2,7 @@ import discord
 from dotenv import load_dotenv
 import os
 import openai
+import random
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,11 +30,13 @@ class Personnage:
     def get_name(self):
         return f"Je suis {self.nom}."
 
-channels_to_personnages = { 
-    "premier": Personnage("Alice", "archéologue", True, False),
-    "second": Personnage("Bob", "informaticien", True, False),
-    "troisieme": Personnage("Carole", "chimiste", True, False),
-    "commissariat": Personnage("David", "détective", True, True)
+channels_to_personnages = {
+    "commissariat": Personnage("David", "détective", True, True),
+    "Archibald Obscurus": Personnage("Monsieur Archibald Obscurus", "???", True, False),
+    "Scarlett Sombreval": Personnage("Mademoiselle Scarlett Sombreval", "???", True, False),
+    "Orion Sangfroid": Personnage("Orion Sangfroid", "???", True, False),
+    "Casyope Lycanthrope": Personnage("Casyope Lycanthrope", "???", True, False),
+    "Edgar Frisson": Personnage("Monsieur Edgar Frisson", "???", True, False)
 }
 
 async def chat_with_gpt(message, personnage):
@@ -96,13 +99,21 @@ async def on_message(message):
         if not category:
             category = await guild.create_category(category_name, overwrites=overwrites)
 
-        channel_names = list(channels_to_personnages.keys())
+        # Le commissaire a toujours son propre canal
+        commissaire_channel = await guild.create_text_channel("commissariat", category=category)
+        await commissaire_channel.send(f'Bienvenue dans commissariat !')
 
-        for name in channel_names:
-            channel = await guild.create_text_channel(name, category=category)
+        # Les noms des autres personnages
+        other_character_names = ["Archibald Obscurus", "Scarlett Sombreval", "Orion Sangfroid", "Casyope Lycanthrope", "Edgar Frisson"]
+        random.shuffle(other_character_names)  # Mélange les noms aléatoirement
+
+        # Crée un canal pour chaque personnage
+        for name in other_character_names[:6]:  # Prend les 6 premiers noms après mélange
+            channel = await guild.create_text_channel(name.replace(" ", "_").lower(), category=category)
             await channel.send(f'Bienvenue dans {name} !')
 
         await message.channel.send(f'Canaux créés dans la catégorie "{category_name}"')
+
 
     if message.content.startswith('/end'):
         user = message.author
@@ -123,5 +134,7 @@ async def on_message(message):
         if personnage.status:
             response_text = await chat_with_gpt(message, personnage)
             await message.channel.send(response_text)
+            
+    
 
 client.run(token)
