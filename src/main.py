@@ -62,7 +62,7 @@ async def chat_with_gpt(message, personnage):
 
 async def reset_daily_counts():
     while True:
-        await asyncio.sleep(86400)  # Attendre 24 heures
+        await asyncio.sleep(86400)
         user_message_count.clear()
         
 @client.event
@@ -80,6 +80,29 @@ async def on_message(message):
     if message.content.startswith('/quoi'):
         await message.channel.send('feur!')
 
+    if message.channel.name == "commissariat":
+        user = message.author
+        suspect_name = "NomDuSuspect"
+
+        if suspect_name in message.content:
+            await message.channel.send(f'Félicitations, {user.mention} a trouvé le coupable ({suspect_name}) !')
+            
+            await asyncio.sleep(5)
+            user = message.author
+            guild = message.guild
+            category_name = f"game_category_{user.name}"
+
+            category = discord.utils.get(guild.categories, name=category_name)
+            if category:
+                for channel in category.channels:
+                    await channel.delete()
+                await category.delete()
+
+            await message.channel.send(f'Canaux et catégorie supprimés pour l\'utilisateur {user.name}')
+            
+            
+            
+
     if message.content.startswith('/play'):
         user = message.author
         guild = message.guild
@@ -94,29 +117,38 @@ async def on_message(message):
         if not category:
             category = await guild.create_category(category_name, overwrites=overwrites)
 
-        # Le commissaire a toujours son propre canal
         commissaire_channel = await guild.create_text_channel("commissariat", category=category)
         await commissaire_channel.send(f'Bienvenue dans le canal du commissariat !\nMétier: {channels_to_personnages["commissariat"].metier}')
         await commissaire_channel.send(file=discord.File(channels_to_personnages["commissariat"].image_path))
 
-
-        # Les noms des autres personnages
         other_character_names = ["Archibald Obscurus", "Scarlett Sombreval", "Orion Sangfroid", "Casyope Lycanthrope", "Edgar Frisson"]
-        random.shuffle(other_character_names)  # Mélange les noms aléatoirement
+        random.shuffle(other_character_names)
 
-        # Crée un canal pour chaque personnage
         for name in other_character_names[:6]:  
             channel_name = name.replace(" ", "_").lower()
             channel = await guild.create_text_channel(channel_name, category=category)
             personnage = channels_to_personnages[channel_name]
-            
-            # Si le personnage a une description, envoyez-la.
+
             if personnage.description:
                 await channel.send(f'Bienvenue dans le canal de {personnage.nom} !\nMétier: {personnage.metier}\nDescription: {personnage.description}')
                 await channel.send(file=discord.File(personnage.image_path))
             else:
                 await channel.send(f'Bienvenue dans le canal de {personnage.nom} !\nMétier: {personnage.metier}')
                 await channel.send(file=discord.File(personnage.image_path))
+
+        general_channel = discord.utils.get(guild.text_channels, name="général")
+        if general_channel:
+            presentation_message = (
+                "\n"
+                ":mag: Bienvenue dans NeoMystère, un jeu de mystère interactif!\n"
+                ":house: Vous vous trouvez dans un manoir mystérieux avec plusieurs canaux, chacun contenant un personnage différent.\n"
+                ":question: Votre mission est de poser des questions aux personnages pour en savoir plus sur eux.\n"
+                ":police_officer::skin-tone-2: À la fin de votre enquête, vous pourrez donner votre verdict au commissariat pour tenter de résoudre le mystère.\n"
+                ":calendar: Vous avez droit à 5 questions/personnage par jour et une réponse au commissariat par jour. Le jeu dure une semaine."
+            )
+            await general_channel.send(presentation_message)
+
+
 
     if message.content.startswith('/end'):
         user = message.author
