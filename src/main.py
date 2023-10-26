@@ -65,8 +65,9 @@ channels_to_personnages = {
 }
 
 user_message_count = {}  # Format : {user_id: {channel_name: count}}
+user_questions_history = {}  # {user_id: {channel_name: ["question1", "question2", ...]}}
 
-async def chat_with_gpt(message, personnage):
+async def chat_with_gpt(message, personnage, previous_questions):
     user_message = message.content
     additional_info = "L'utilisateur a le droit à seulement cinq questions par jour."
     if personnage.nom == "David":  # Si le personnage est le commissaire David
@@ -74,7 +75,7 @@ async def chat_with_gpt(message, personnage):
     try:
         response = openai.Completion.create(
             engine="text-davinci-002",
-            prompt=f"Tu joues à un jeu de rôle dans le style de cluedo : Tu es {personnage.nom}, un {personnage.metier}, {personnage.description}. Ton alibi est : {personnage.alibi}. Tu dois intéragir UNIQUEMENT comme si tu étais ce personnage, avec l'utilisateur qui va essayer de devenir qui est le tueur. {additional_info}. Voici l'histoire du jeu : L'histoire commence lors d'une nuit sombre et pluvieuse, alors que les six invités se retrouvent au Manoir des Ombres pour une soirée d'Halloween inoubliable. Soudain, un éclair déchire le ciel, plongeant la demeure dans l'obscurité. Lorsque la lumière revient, Madame Mortisia DeLune est retrouvée morte dans le hall, son corps entouré de bougies vacillantes. Chacun des personnages cache un sombre secret, et ils sont tous suspects. Pour cette partie, le tueur sera {tueur} et l'arme du meurtre sera {arme_choisie}. \nUtilisateur : {user_message}\nIA:",
+            prompt=f"Tu joues à un jeu de rôle dans le style de cluedo : Tu es {personnage.nom}, un {personnage.metier}, {personnage.description}. Ton alibi est : {personnage.alibi}. Tu dois intéragir UNIQUEMENT comme si tu étais ce personnage, avec l'utilisateur qui va essayer de devenir qui est le tueur. {additional_info}. Voici l'histoire du jeu : L'histoire commence lors d'une nuit sombre et pluvieuse, alors que les six invités se retrouvent au Manoir des Ombres pour une soirée d'Halloween inoubliable. Soudain, un éclair déchire le ciel, plongeant la demeure dans l'obscurité. Lorsque la lumière revient, Madame Mortisia DeLune est retrouvée morte dans le hall, son corps entouré de bougies vacillantes. Chacun des personnages cache un sombre secret, et ils sont tous suspects. Pour cette partie, le tueur sera {tueur} et l'arme du meurtre sera {arme_choisie}. L'historique des questions : {previous_questions} \nUtilisateur : {user_message}\nIA:",
             max_tokens=150
         )
         response_text = response.choices[0].text
@@ -97,7 +98,7 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if message.content.startswith('/hello'):
+    if message.content.startswith('/hello'):    
         await message.channel.send('Hello!')
     if message.content.startswith('/quoi'):
         await message.channel.send('feur!')
@@ -203,9 +204,17 @@ async def on_message(message):
     if message.channel.name in channels_to_personnages:
         personnage = channels_to_personnages[message.channel.name]
         
-        # Vérifier la limite de messages
         user_id = message.author.id
         channel_name = message.channel.name
+        
+        # Mise à jour de l'historique
+        if user_id not in user_questions_history:
+            user_questions_history[user_id] = {}
+        if channel_name not in user_questions_history[user_id]:
+            user_questions_history[user_id][channel_name] = []
+        user_questions_history[user_id][channel_name].append(message.content)
+
+        # Vérifier le compteur de messages
         if user_id not in user_message_count:
             user_message_count[user_id] = {}
         if channel_name not in user_message_count[user_id]:
@@ -222,9 +231,9 @@ async def on_message(message):
         user_message_count[user_id][channel_name] += 1
 
         if personnage.status:
-            response_text = await chat_with_gpt(message, personnage)
+            previous_questions = "\n".join(user_questions_history[user_id][channel_name])
+            response_text = await chat_with_gpt(message, personnage, previous_questions)  # Passez l'historique comme argument supplémentaire
             formatted_response = f"**{personnage.nom}**: {response_text}"
             await message.channel.send(formatted_response)
-
 
 client.run(token)
