@@ -15,16 +15,38 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 client = discord.Client(intents=intents)
 
+# Créer une liste des armes
+armes = [
+    "Le Poison Spectral",
+    "La Dague des Ténèbres",
+    "Le Sceptre Ensorcelé",
+    "Le Masque Maudit",
+    "La Fiole d'Éclairs Fantômes",
+    "Le Livre des Malédictions"
+]
+
+suspects = [
+    "Archibald Obscurus", 
+    "Scarlett Sombreval", 
+    "Orion Sangfroid", 
+    "Casyope Lycanthrope", 
+    "Edgar Frisson"
+]
+
+arme_choisie = ""
+tueur = ""
+
 class Personnage:
-    def __init__(self, nom, metier, status, hierarchy, image_path, description):
+    def __init__(self, nom, metier, alibi, status, hierarchy, image_path, description):
         self.nom = nom
         self.metier = metier
+        self.alibi = alibi
         self.status = status
         self.hierarchy = hierarchy
         self.image_path = image_path
         self.description = description  # Nouvelle propriété pour la description
 
-    def introduce_hisself(self):
+    def introduce_himself(self):
         return f"Bonjour, je m'appelle {self.nom} et je suis le {self.metier}."
 
     def get_job(self):
@@ -34,12 +56,12 @@ class Personnage:
         return f"Je suis {self.nom}."
 
 channels_to_personnages = {
-    "commissariat": Personnage("David", "détective", True, True, "assets/11minutos.jpg", ""),
-    "archibald_obscurus": Personnage("Monsieur Archibald Obscurus", "fantôme, boulanger", True, False, "assets/11minutos.jpg", "Un érudit calme et énigmatique, obsédé par l'étude des phénomènes surnaturels. Il parle rarement de lui-même, préférant discuter de sujets ésotériques avec ceux qui peuvent le suivre dans ses intérêts."),
-    "scarlett_sombreval": Personnage("Mademoiselle Scarlett Sombreval", "sorcière, infirmière", True, False, "assets/11minutos.jpg", "Une actrice théâtrale charismatique avec une passion pour le macabre. Elle est extravertie, aime être au centre de l'attention et a une collection de souvenirs de films d'horreur dans sa chambre."),
-    "orion_sangfroid": Personnage("Orion Sangfroid", "diable, fleuriste", True, False, "assets/11minutos.jpg", "Un homme stoïque avec une fascination pour les fleurs. Il parle peu de ses propres expériences, mais son regard intense suggère une vie pleine de mystères."),
-    "casyope_lycanthrope": Personnage("Casyope Lycanthrope", "loup-garou maire fan de science", True, False, "assets/lhommeleplusaigridefrance.jpg", "Un maire et scientifique déterminé et curieux, passionné par l'étude des créatures surnaturelles. Il est pragmatique et sceptique, mais toujours ouvert à la découverte de nouvelles vérités."),
-    "edgar_frisson": Personnage("Monsieur Edgar Frisson", "zombie, facteur", True, False, "assets/lhommeleplusaigridefrance.jpg", "Il est discret, mais il semble avoir un sixième sens pour les mystères. Sa présence discrète cache peut-être plus qu'il ne le laisse paraître.")
+    "commissariat": Personnage("David", "détective", "Tu es le commissaire, tu n'as donc pas d'alibi.", True, True, "assets/commissariat.webp", ""),
+    "archibald_obscurus": Personnage("Monsieur Archibald Obscurus", "fantôme, boulanger", "Il prétendait être dans sa cuisine en train de préparer la soirée d'Halloween, vérifiable par des notes et des préparatifs retrouvés.", True, False, "assets/archibald_obscurus.webp", "Un érudit calme et énigmatique, obsédé par l'étude des phénomènes surnaturels. Il parle rarement de lui-même, préférant discuter de sujets ésotériques avec ceux qui peuvent le suivre dans ses intérêts."),
+    "scarlett_sombreval": Personnage("Mademoiselle Scarlett Sombreval", "sorcière, infirmière", "Elle prétendait être dans le Jardin des  mes Perdues, prenant l'air entre les préparatifs de la fête. Certains invités peuvent confirmer avoir vu une silhouette féminine dans l'obscurité.", True, False, "assets/scarlett_sombreval.webp", "Une actrice théâtrale charismatique avec une passion pour le macabre. Elle est extravertie, aime être au centre de l'attention et a une collection de souvenirs de films d'horreur dans sa chambre."),
+    "orion_sangfroid": Personnage("Orion Sangfroid", "diable, fleuriste", "il affirmait être dans le Salon des Ombres Éternelles, admirant la collection d'armes. Des invités ont peut-être croisé son chemin pendant cette période.", True, False, "assets/orion_sangfroid.webp", "Un homme stoïque avec une fascination pour les fleurs. Il parle peu de ses propres expériences, mais son regard intense suggère une vie pleine de mystères."),
+    "casyope_lycanthrope": Personnage("Casyope Lycanthrope", "loup-garou maire fan de science", "Il prétendait être dans son Laboratoire Interdit, travaillant sur des expériences. Des résidus ou des indices de son travail pourraient être trouvés dans le laboratoire.", True, False, "assets/casyope_lycanthrope.webp", "Un maire et scientifique déterminé et curieux, passionné par l'étude des créatures surnaturelles. Il est pragmatique et sceptique, mais toujours ouvert à la découverte de nouvelles vérités."),
+    "edgar_frisson": Personnage("Monsieur Edgar Frisson", "zombie, facteur", " Il prétendait être dans la salle à manger, supervisant les préparatifs du dîner. Des témoignages d'autres membres du personnel pourraient confirmer ou réfuter cette affirmation.", True, False, "assets/edgar_frisson.webp", "Il est discret, mais il semble avoir un sixième sens pour les mystères. Sa présence discrète cache peut-être plus qu'il ne le laisse paraître.")
 }
 
 user_message_count = {}  # Format : {user_id: {channel_name: count}}
@@ -48,11 +70,11 @@ async def chat_with_gpt(message, personnage):
     user_message = message.content
     additional_info = "L'utilisateur a le droit à seulement cinq questions par jour."
     if personnage.nom == "David":  # Si le personnage est le commissaire David
-        additional_info = "L'utilisateur a le droit à une seule proposition par jour pour déterminer qui est le tueur."
+        additional_info = "L'utilisateur doit interroger les autres personnages et trouvez qui a causé la mort de Madame DeLune et avec quelle arme. Pour accomplir ça, l'utilisateur à le droit à une seule proposition par jour pour déterminer qui est le tueur et quelle est son arme."  
     try:
         response = openai.Completion.create(
             engine="text-davinci-002",
-            prompt=f"Tu joues à un jeu de rôle dans le style de cluedo : Tu es {personnage.nom}, un {personnage.metier}, {personnage.description}. Tu dois intéragir UNIQUEMENT comme si tu étais ce personnage, avec l'utilisateur qui va essayer de devenir qui est le tueur. {additional_info}. Voici l'histoire du jeu : L'histoire commence lors d'une nuit sombre et pluvieuse, alors que les six invités se retrouvent au Manoir des Ombres pour une soirée d'Halloween inoubliable. Soudain, un éclair déchire le ciel, plongeant la demeure dans l'obscurité. Lorsque la lumière revient, Madame Mortisia DeLune est retrouvée morte dans le hall, son corps entouré de bougies vacillantes. Chacun des personnages cache un sombre secret, et ils sont tous suspects. Les invités doivent fouiller le manoir pour trouver des indices, interroger les autres personnages et résoudre le mystère de la mort de Madame DeLune. \nUtilisateur : {user_message}\nIA:",
+            prompt=f"Tu joues à un jeu de rôle dans le style de cluedo : Tu es {personnage.nom}, un {personnage.metier}, {personnage.description}. Ton alibi est : {personnage.alibi}. Tu dois intéragir UNIQUEMENT comme si tu étais ce personnage, avec l'utilisateur qui va essayer de devenir qui est le tueur. {additional_info}. Voici l'histoire du jeu : L'histoire commence lors d'une nuit sombre et pluvieuse, alors que les six invités se retrouvent au Manoir des Ombres pour une soirée d'Halloween inoubliable. Soudain, un éclair déchire le ciel, plongeant la demeure dans l'obscurité. Lorsque la lumière revient, Madame Mortisia DeLune est retrouvée morte dans le hall, son corps entouré de bougies vacillantes. Chacun des personnages cache un sombre secret, et ils sont tous suspects. Pour cette partie, le tueur sera {tueur} et l'arme du meurtre sera {arme_choisie}. \nUtilisateur : {user_message}\nIA:",
             max_tokens=150
         )
         response_text = response.choices[0].text
@@ -79,6 +101,12 @@ async def on_message(message):
         await message.channel.send('Hello!')
     if message.content.startswith('/quoi'):
         await message.channel.send('feur!')
+        
+    # Limiter la longueur des messages dans les canaux créés
+    if message.channel.category and message.channel.category.name.startswith("game_category_"):
+        if len(message.content) > 150:
+            await message.channel.send("**Votre message est trop long ! Il ne doit pas dépasser 150 caractères.**")
+            return  # Ne pas traiter ce message plus loin et ne pas mettre à jour le compteur
 
     if message.channel.name == "commissariat":
         user = message.author
@@ -104,6 +132,15 @@ async def on_message(message):
             
 
     if message.content.startswith('/play'):
+        
+        # Choisir un tueur aléatoirement parmi les suspects
+        tueur = random.choice(suspects)
+        print(tueur)
+        
+        # Choisir une arme aléatoirement
+        arme_choisie = random.choice(armes)
+        print(arme_choisie)
+        
         user = message.author
         guild = message.guild
         category_name = f"game_category_{user.name}"
@@ -118,7 +155,7 @@ async def on_message(message):
             category = await guild.create_category(category_name, overwrites=overwrites)
 
         commissaire_channel = await guild.create_text_channel("commissariat", category=category)
-        await commissaire_channel.send(f'Bienvenue dans le canal du commissariat !\nMétier: {channels_to_personnages["commissariat"].metier}')
+        await commissaire_channel.send(f'**Bienvenue dans le canal du commissariat !**\n\n**Métier:** {channels_to_personnages["commissariat"].metier}\n')
         await commissaire_channel.send(file=discord.File(channels_to_personnages["commissariat"].image_path))
 
         other_character_names = ["Archibald Obscurus", "Scarlett Sombreval", "Orion Sangfroid", "Casyope Lycanthrope", "Edgar Frisson"]
@@ -130,10 +167,10 @@ async def on_message(message):
             personnage = channels_to_personnages[channel_name]
 
             if personnage.description:
-                await channel.send(f'Bienvenue dans le canal de {personnage.nom} !\nMétier: {personnage.metier}\nDescription: {personnage.description}')
+                await channel.send(f'**Bienvenue dans le canal de {personnage.nom} !**\n\n**Métier:** {personnage.metier}\n\n**Description:** {personnage.description}\n')
                 await channel.send(file=discord.File(personnage.image_path))
             else:
-                await channel.send(f'Bienvenue dans le canal de {personnage.nom} !\nMétier: {personnage.metier}')
+                await channel.send(f'**Bienvenue dans le canal de {personnage.nom} !**\n\n**Métier:** {personnage.metier}\n')
                 await channel.send(file=discord.File(personnage.image_path))
 
         general_channel = discord.utils.get(guild.text_channels, name="général")
@@ -175,7 +212,7 @@ async def on_message(message):
             user_message_count[user_id][channel_name] = 0
 
         # Définir la limite en fonction du canal
-        limit = 1 if channel_name == "commissariat" else 5
+        limit = 1 if channel_name == "commissariat" else 5  
 
         if user_message_count[user_id][channel_name] >= limit:
             await message.channel.send("Désolé, vous avez atteint votre limite de messages pour aujourd'hui pour ce personnage.")

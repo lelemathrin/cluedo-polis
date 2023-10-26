@@ -1,5 +1,3 @@
-- adapter les personnages a l'histoire (google doc)
 - créer historique de toutes les questions
 - mécanique pour trouver le murder et gagner
 - menu de fin quand win avec calcul pour les récompenses en fonction de (à faire)
--limite de charactères par message
