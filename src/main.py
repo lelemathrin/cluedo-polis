@@ -95,6 +95,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    global tueur
     if message.author == client.user:
         return
 
@@ -111,10 +112,9 @@ async def on_message(message):
 
     if message.channel.name == "commissariat":
         user = message.author
-        suspect_name = "NomDuSuspect"
 
-        if suspect_name in message.content:
-            await message.channel.send(f'Félicitations, {user.mention} a trouvé le coupable ({suspect_name}) !')
+        if tueur in message.content:
+            await message.channel.send(f'Félicitations, {user.mention} a trouvé le coupable ({tueur}) !')
             
             await asyncio.sleep(5)
             user = message.author
@@ -133,6 +133,10 @@ async def on_message(message):
             
 
     if message.content.startswith('/play'):
+        loading = (
+            "Création des channels des personnages..."
+        )
+        await message.channel.send(loading)
         
         # Choisir un tueur aléatoirement parmi les suspects
         tueur = random.choice(suspects)
@@ -178,13 +182,15 @@ async def on_message(message):
         if general_channel:
             presentation_message = (
                 "\n"
-                ":mag: Bienvenue dans NeoMystère, un jeu de mystère interactif!\n"
+                ":mag: Bienvenue dans **NeoMystère**, un jeu de mystère interactif!\n"
                 ":house: Vous vous trouvez dans un manoir mystérieux avec plusieurs canaux, chacun contenant un personnage différent.\n"
                 ":question: Votre mission est de poser des questions aux personnages pour en savoir plus sur eux.\n"
                 ":police_officer::skin-tone-2: À la fin de votre enquête, vous pourrez donner votre verdict au commissariat pour tenter de résoudre le mystère.\n"
                 ":calendar: Vous avez droit à 5 questions/personnage par jour et une réponse au commissariat par jour. Le jeu dure une semaine."
             )
             await general_channel.send(presentation_message)
+            await general_channel.send(file=discord.File("assets/manoir.jpg"))
+            
 
 
 

@@ -1,4 +1,1 @@
-- créer historique de toutes les questions
-- se souvenir des anciennes questions
-- mécanique pour trouver le murder et gagner
 - menu de fin quand win avec calcul pour les récompenses en fonction de (à faire)
