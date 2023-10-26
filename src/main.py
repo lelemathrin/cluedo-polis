@@ -46,10 +46,13 @@ user_message_count = {}  # Format : {user_id: {channel_name: count}}
 
 async def chat_with_gpt(message, personnage):
     user_message = message.content
+    additional_info = "L'utilisateur a le droit à seulement cinq questions par jour."
+    if personnage.nom == "David":  # Si le personnage est le commissaire David
+        additional_info = "L'utilisateur a le droit à une seule proposition par jour pour déterminer qui est le tueur."
     try:
         response = openai.Completion.create(
             engine="text-davinci-002",
-            prompt=f"Jouez un jeu de rôle : Vous êtes {personnage.nom}, un {personnage.metier}. Interagissez comme si vous étiez ce personnage.\nUtilisateur : {user_message}\nIA:",
+            prompt=f"Tu joues à un jeu de rôle dans le style de cluedo : Tu es {personnage.nom}, un {personnage.metier}, {personnage.description}. Tu dois intéragir UNIQUEMENT comme si tu étais ce personnage, avec l'utilisateur qui va essayer de devenir qui est le tueur. {additional_info}. Voici l'histoire du jeu : L'histoire commence lors d'une nuit sombre et pluvieuse, alors que les six invités se retrouvent au Manoir des Ombres pour une soirée d'Halloween inoubliable. Soudain, un éclair déchire le ciel, plongeant la demeure dans l'obscurité. Lorsque la lumière revient, Madame Mortisia DeLune est retrouvée morte dans le hall, son corps entouré de bougies vacillantes. Chacun des personnages cache un sombre secret, et ils sont tous suspects. Les invités doivent fouiller le manoir pour trouver des indices, interroger les autres personnages et résoudre le mystère de la mort de Madame DeLune. \nUtilisateur : {user_message}\nIA:",
             max_tokens=150
         )
         response_text = response.choices[0].text
