@@ -10,7 +10,7 @@ intents.message_content = True
 
 load_dotenv()
 
-token = os.getenv("DISCORD_TOKEN")
+token = os.getenv("DISCORD_TOKENN")
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 client = discord.Client(intents=intents)
